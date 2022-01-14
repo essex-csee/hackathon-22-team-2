@@ -5,40 +5,15 @@ public class Card : Node2D
 {
     public const int CARD_SIZE = 400;
 
-    public readonly string[] IMAGES = {
-        "Apple.png",
-        "Beans.png",
-        "Car.png",
-        "Dog.png",
-        "Earth.png",
-        "Gold.png",
-        "Fish.png",
-        "Helocopter.png",
-        "IceCream.png",
-        "Jellyfish.png",
-        "King.png",
-        "Love.png",
-        "Moon.png",
-        "Nail.png",
-        "Orange.png",
-        "Panda.png",
-        "Question.png",
-        "Rocket.png",
-        "Snail.png",
-        "Tree.png",
-        "UFO.png"
-    };
-
-    private int[] icons;
+    private string[] icons;
     private RandomNumberGenerator rng;
 
 
     public override void _Ready()
     {
-        InitCard(new int[]{ 0, 1, 2, 3, 4 });
     }
 
-    public void InitCard(int[] icons)
+    public void InitCard(string[] icons)
     {
         this.icons = icons;
 
@@ -66,7 +41,7 @@ public class Card : Node2D
         {
             Icon icon = (Icon)iconScene.Instance();
 
-            Texture tex = GD.Load<Texture>("res://" + IMAGES[i]);
+            Texture tex = GD.Load<Texture>("res://" + icons[i] + ".png");
             icon.SetTexture(tex);
             icon.RotationDegrees = rng.RandfRange(0, 360);
             icon.Position = places[i];
