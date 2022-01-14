@@ -62,9 +62,6 @@ public class Card : Node2D
         int gridWidth = (int)((width) / cellSize);
         int gridHeight = (int)((height) / cellSize);
 
-        GD.Print(gridWidth, " ", gridHeight);
-        GD.Print("---------");
-
         Vector2[,] grid = new Vector2[gridWidth, gridHeight];
 
         //Create the first point
@@ -72,8 +69,6 @@ public class Card : Node2D
         
         int xInd = Mathf.Min(gridWidth-1, Mathf.Max(0, Mathf.FloorToInt(p0.x / cellSize)));
         int yInd = Mathf.Min(gridHeight-1, Mathf.Max(0, Mathf.FloorToInt(p0.y / cellSize)));
-
-        GD.Print(xInd, " ", yInd);
 
         grid[xInd,yInd] = p0;
 
@@ -130,7 +125,6 @@ public class Card : Node2D
 
                 if (valid)
                 {
-                    GD.Print(xInd, " ", yInd);
                     grid[xInd,yInd] = newPoint;
                     points.Add(newPoint);
                     active.Add(newPoint);
