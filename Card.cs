@@ -11,8 +11,22 @@ public class Card : Node2D
         "Car.png",
         "Dog.png",
         "Earth.png",
+        "Gold.png",
         "Fish.png",
-        "Helocopter.png"
+        "Helocopter.png",
+        "IceCream.png",
+        "Jellyfish.png",
+        "King.png",
+        "Love.png",
+        "Moon.png",
+        "Nail.png",
+        "Orange.png",
+        "Panda.png",
+        "Question.png",
+        "Rocket.png",
+        "Snail.png",
+        "Tree.png",
+        "UFO.png"
     };
 
     private int[] icons;
