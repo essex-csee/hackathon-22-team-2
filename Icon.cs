@@ -5,6 +5,8 @@ public class Icon : Area2D
 {
     [Signal] public delegate void OnClick();
 
+    private bool mouseIn = false;
+
     public Card Card
     {
         get
@@ -18,12 +20,24 @@ public class Icon : Area2D
         GetNode<Sprite>("Sprite").Texture = img;
     }
 
+    //Below this comment is weird hacky click handling. Why there isn't a core OnClick handler is beyond me.
     public override void _Input(InputEvent ie)
     {
         //If mouse button click (but not held)
-        if (ie is InputEventMouseButton && ie.IsPressed() && !ie.IsEcho())
+        if (ie is InputEventMouseButton && ie.IsPressed() && !ie.IsEcho() && mouseIn)
         {
             GD.Print("Clicked icon " + Name);
+            EmitSignal("OnClick");
         }
+    }
+
+    public void _on_Icon_mouse_entered()
+    {
+        mouseIn = true;
+    }
+
+    public void _on_Icon_mouse_exited()
+    {
+        mouseIn = false;
     }
 }
