@@ -6,7 +6,130 @@
 script = ExtResource( 1 )
 
 [node name="CardSlotLeft" type="Node2D" parent="."]
-position = Vector2( 62, 100 )
+position = Vector2( 176, 100 )
 
 [node name="CardSlotRight" type="Node2D" parent="."]
-position = Vector2( 574, 100 )
+position = Vector2( 600, 100 )
+
+[node name="Panel" type="Panel" parent="."]
+margin_left = 25.0
+margin_top = 175.0
+margin_right = 125.0
+margin_bottom = 425.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="ThemLabel" type="RichTextLabel" parent="Panel"]
+margin_left = 5.0
+margin_top = 5.0
+margin_right = 85.0
+margin_bottom = 25.0
+visible_characters = 5
+text = "Them:
+"
+scroll_active = false
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="ThemScore" type="RichTextLabel" parent="Panel"]
+margin_left = 54.0
+margin_top = 5.0
+margin_right = 104.0
+margin_bottom = 25.0
+text = "0
+
+"
+scroll_active = false
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="MeLabel" type="RichTextLabel" parent="Panel"]
+margin_left = 5.0
+margin_top = 225.0
+margin_right = 85.0
+margin_bottom = 245.0
+text = "Me:
+"
+scroll_active = false
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="MeScore" type="RichTextLabel" parent="Panel"]
+margin_left = 54.0
+margin_top = 225.0
+margin_right = 104.0
+margin_bottom = 245.0
+text = "0
+
+"
+scroll_active = false
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="DeckLabel" type="RichTextLabel" parent="Panel"]
+margin_left = 5.0
+margin_top = 117.0
+margin_right = 85.0
+margin_bottom = 137.0
+text = "Deck:"
+scroll_active = false
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="DeckCount" type="RichTextLabel" parent="Panel"]
+margin_left = 54.0
+margin_top = 117.0
+margin_right = 104.0
+margin_bottom = 137.0
+text = "31
+"
+scroll_active = false
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="WinMessage" type="RichTextLabel" parent="."]
+visible = false
+margin_left = 383.0
+margin_top = 231.0
+margin_right = 456.0
+margin_bottom = 244.0
+rect_scale = Vector2( 4, 4 )
+visible_characters = 21
+text = "YOU WIN!!!
+"
+scroll_active = false
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="LoseMessage" type="RichTextLabel" parent="."]
+margin_left = 383.0
+margin_top = 231.0
+margin_right = 456.0
+margin_bottom = 244.0
+rect_scale = Vector2( 4, 4 )
+text = "you lose :("
+scroll_active = false
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="ResetMessage" type="RichTextLabel" parent="."]
+margin_left = 359.0
+margin_top = 284.0
+margin_right = 523.0
+margin_bottom = 297.0
+rect_scale = Vector2( 2, 2 )
+text = "Press Space to play again
+"
+scroll_active = false
+__meta__ = {
+"_edit_use_anchors_": false
+}

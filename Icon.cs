@@ -3,7 +3,7 @@ using System;
 
 public class Icon : Area2D
 {
-    [Signal] public delegate void OnClick();
+    [Signal] public delegate void OnClick(string name);
 
     private bool mouseIn = false;
 
@@ -27,7 +27,7 @@ public class Icon : Area2D
         if (ie is InputEventMouseButton && ie.IsPressed() && !ie.IsEcho() && mouseIn)
         {
             GD.Print("Clicked icon " + Name);
-            EmitSignal("OnClick");
+            EmitSignal("OnClick", Name);
         }
     }
 

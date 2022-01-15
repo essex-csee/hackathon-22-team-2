@@ -3,6 +3,8 @@ using System.Collections.Generic;
 
 public class Card : Node2D
 {
+    [Signal] public delegate void IconSelected(Card card, string name);
+
     public const int CARD_SIZE = 400;
 
     private string[] icons;
@@ -45,10 +47,23 @@ public class Card : Node2D
             icon.SetTexture(tex);
             icon.RotationDegrees = rng.RandfRange(0, 360);
             icon.Position = places[i];
+            icon.Name = icons[i];
+
+            icon.Connect("OnClick", this, "_on_Icon_OnClick");
 
             AddChild(icon);
             icon.Owner = this;
         }
+    }
+
+    public bool HasIcon(string icon)
+    {
+        for (int i = 0; i < icons.Length; i++)
+        {
+            if (icons[i] == icon)
+                return true;
+        }
+        return false;
     }
 
     //Function to create Poisson disk sampled points so no icons overlap
@@ -144,5 +159,10 @@ public class Card : Node2D
             throw new System.Exception("Could not find a spot for all icons");
 
         return points;
+    }
+
+    private void _on_Icon_OnClick(string icon)
+    {
+        EmitSignal("IconSelected", this, icon);
     }
 }
