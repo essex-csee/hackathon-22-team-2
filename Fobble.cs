@@ -3,7 +3,7 @@ using System;
 
 public class Fobble : Node2D
 {
-    readonly string[][] BASE_DECK = new string[][] {
+    public static readonly string[][] BASE_DECK = new string[][] {
         new string[] {"Apple", "Beans", "Car", "Dog", "Earth", "Gold"},
         new string[] {"Apple", "Fish", "Helicopter", "IceCream", "Jellyfish", "King"},
         new string[] {"Apple", "Love", "Moon", "Nail", "Orange", "Panda"},
@@ -37,7 +37,13 @@ public class Fobble : Node2D
         new string[] {"Gold", "King", "Orange", "Snail", "Windmill", "Arrow"}
     };
 
-    string[][] deck;
+    private static Fobble instance;
+    public static Fobble Instance
+    {
+        get { return instance; }
+    }
+
+    int[] deckOrder;
     int deckIndex = 0;
     bool gameOver;
     
@@ -60,9 +66,13 @@ public class Fobble : Node2D
     RichTextLabel loseMessage;
     RichTextLabel resetMessage;
 
+    InputHandler inputHandler;
+
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
     {
+        instance = this;
+
         cardScene = GD.Load<PackedScene>("res://Card.tscn");
 
         leftSlot = GetNode<Node2D>("CardSlotLeft");
@@ -75,6 +85,8 @@ public class Fobble : Node2D
         winMessage = GetNode<RichTextLabel>("WinMessage");
         loseMessage = GetNode<RichTextLabel>("LoseMessage");
         resetMessage = GetNode<RichTextLabel>("ResetMessage");
+        
+        inputHandler = GetNode<InputHandler>("InputHandler");
 
         InitFobble();
     }
@@ -98,8 +110,9 @@ public class Fobble : Node2D
         deckIndex = BASE_DECK.Length - 1;
 
         //Create the deck
-        deck = new string[BASE_DECK.Length][];
-        Array.Copy(BASE_DECK, deck, BASE_DECK.Length);
+        deckOrder = new int[BASE_DECK.Length];
+        for (int i = 0; i < deckOrder.Length; i++)
+            deckOrder[i] = i;
 
         //Shuffle
         int n = BASE_DECK.Length;
@@ -108,27 +121,25 @@ public class Fobble : Node2D
             int k = rng.RandiRange(0, n);
             n--;
 
-            var temp = deck[n];
-            deck[n] = deck[k];
-            deck[k] = temp;
+            var temp = deckOrder[n];
+            deckOrder[n] = deckOrder[k];
+            deckOrder[k] = temp;
         }
 
-        DrawCard(Slots.Left);
-        DrawCard(Slots.Right);
+        DrawCard(CardSlots.Left);
+        DrawCard(CardSlots.Right);
 
         UpdateScores();
     }
 
-    private bool DrawCard(Slots slot)
+    public bool DrawCard(CardSlots slot)
     {
         if (deckIndex == -1)
             return false;
 
-        string[] cardInfo = deck[deckIndex--];
-
         Card newCard = (Card)cardScene.Instance();
         
-        if (slot == Slots.Left)
+        if (slot == CardSlots.Left)
         {
             if (leftCard != null)
                 leftCard.CallDeferred("free");
@@ -148,24 +159,27 @@ public class Fobble : Node2D
         }
 
         newCard.Connect("IconSelected", this, "_on_Card_IconSelected");
-        newCard.InitCard(cardInfo);
+        newCard.InitCard(deckOrder[deckIndex--]);
 
         return true;
     }
 
-    private void UpdateScores()
+    private void _on_Card_IconSelected(Card card, string icon)
+    {
+        CardSlots slot = card == leftCard ? CardSlots.Left : CardSlots.Right;
+        inputHandler.InputMade(slot, icon);
+    }
+
+    public void UpdateScores()
     {
         deckCountLabel.Text = (deckIndex + 1).ToString();
         meScoreLabel.Text = meScore.ToString();
         themScoreLabel.Text = themScore.ToString();
     }
 
-    private void _on_Card_IconSelected(Card card, string icon)
+    public void UpdateInput(Inputs input)
     {
-        if (gameOver)
-            return;
-
-        if (leftCard.HasIcon(icon) && rightCard.HasIcon(icon))
+        if (leftCard.HasIcon(input.icon) && rightCard.HasIcon(input.icon))
         {
             meScore++;
         }
@@ -174,20 +188,43 @@ public class Fobble : Node2D
             themScore++;
         }
 
-        Slots slot = card == leftCard ? Slots.Left : Slots.Right;
-        
-        if (!DrawCard(slot))
-        {
-            //gg
-            gameOver = true;
-            winMessage.Visible = meScore > themScore;
-            loseMessage.Visible = !(meScore > themScore);
-            resetMessage.Visible = true;
-            leftSlot.Visible = false;
-            rightSlot.Visible = false;
-        }
+        if (!DrawCard(input.slot.Value))
+            GG();
 
         UpdateScores();
+    }
+
+    public void ResetGameState(GameState oldState)
+    {
+        gameOver = oldState.gameOver;
+        deckOrder = oldState.deckOrder;
+        deckIndex = oldState.deckIndex;
+        meScore = oldState.playerOnePoints;
+        themScore = oldState.playerTwoPoints;
+    }
+
+    public GameState GetGameState()
+    {
+        GameState state = new GameState
+        {
+            deckIndex = deckIndex,
+            deckOrder = deckOrder,
+            gameOver = gameOver,
+            playerOnePoints = meScore,
+            playerTwoPoints = themScore
+        };
+
+        return state;
+    }
+
+    public void GG()
+    {
+        gameOver = true;
+        winMessage.Visible = meScore > themScore;
+        loseMessage.Visible = !(meScore > themScore);
+        resetMessage.Visible = true;
+        leftSlot.Visible = false;
+        rightSlot.Visible = false;
     }
 
     public override void _Input(InputEvent ie)
@@ -199,9 +236,44 @@ public class Fobble : Node2D
         }
     }
 
-    private enum Slots
+    public enum CardSlots
     {
-        Left,
-        Right
+        Left = 0,
+        Right = 1
+    }
+    public enum Players
+    {
+        One = 0,
+        Two = 1
+    }
+
+    public struct Inputs
+    {
+        public string icon;
+        public Fobble.CardSlots? slot;
+
+        public Inputs(string icon, Fobble.CardSlots slot)
+        {
+            this.icon = icon;
+            this.slot = slot;
+        }
+
+        public bool Active
+        {
+            get { return icon != null && slot != null; }
+        }
+    }
+
+    public struct GameState
+    {
+        public Inputs input;
+        public int[] deckOrder;
+        public bool gameOver;
+        public int playerOnePoints;
+        public int playerTwoPoints;
+        public int deckIndex;
+        public int leftCardIndex;
+        public int rightCardIndex;
+        public int frameNum;
     }
 }

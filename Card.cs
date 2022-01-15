@@ -15,9 +15,9 @@ public class Card : Node2D
     {
     }
 
-    public void InitCard(string[] icons)
+    public void InitCard(int cardIndex)
     {
-        this.icons = icons;
+        this.icons = Fobble.BASE_DECK[cardIndex];;
 
         rng = new RandomNumberGenerator();
         rng.Randomize();
@@ -58,6 +58,17 @@ public class Card : Node2D
 
     public bool HasIcon(string icon)
     {
+        for (int i = 0; i < icons.Length; i++)
+        {
+            if (icons[i] == icon)
+                return true;
+        }
+        return false;
+    }
+
+    public static bool HasIcon(int cardIndex, string icon)
+    {
+        string[] icons = Fobble.BASE_DECK[cardIndex];
         for (int i = 0; i < icons.Length; i++)
         {
             if (icons[i] == icon)

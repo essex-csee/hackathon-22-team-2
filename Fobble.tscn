@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=2]
+[gd_scene load_steps=3 format=2]
 
 [ext_resource path="res://Fobble.cs" type="Script" id=1]
+[ext_resource path="res://InputHandler.cs" type="Script" id=2]
 
 [node name="Fobble" type="Node2D"]
 script = ExtResource( 1 )
@@ -110,6 +111,7 @@ __meta__ = {
 }
 
 [node name="LoseMessage" type="RichTextLabel" parent="."]
+visible = false
 margin_left = 383.0
 margin_top = 231.0
 margin_right = 456.0
@@ -122,6 +124,7 @@ __meta__ = {
 }
 
 [node name="ResetMessage" type="RichTextLabel" parent="."]
+visible = false
 margin_left = 359.0
 margin_top = 284.0
 margin_right = 523.0
@@ -133,3 +136,6 @@ scroll_active = false
 __meta__ = {
 "_edit_use_anchors_": false
 }
+
+[node name="InputHandler" type="Node" parent="."]
+script = ExtResource( 2 )
