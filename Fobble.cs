@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using System.Collections.Generic;
 
 public class Fobble : Node2D
 {
@@ -37,6 +38,15 @@ public class Fobble : Node2D
         new string[] {"Gold", "King", "Orange", "Snail", "Windmill", "Arrow"}
     };
 
+    public static readonly string[] SYMBOLS = new string[]
+    {
+        "Apple", "Beans", "Car", "Dog", "Earth", "Gold",
+        "Fish", "Helicopter", "IceCream", "Jellyfish", "King", "Love",
+        "Moon", "Nail", "Orange", "Panda", "Question", "Rocket", 
+        "Snail", "Tree", "UFO", "Volcano", "Windmill", "X",
+        "Yellow", "Zeppelin", "Arrow", "Bee", "Carrot", "Duck", "Eyes"
+    };
+
     private static Fobble instance;
     public static Fobble Instance
     {
@@ -45,7 +55,7 @@ public class Fobble : Node2D
 
     int[] deckOrder;
     int deckIndex = 0;
-    bool gameOver;
+    public GameStatus gameStatus;
     
     RandomNumberGenerator rng;
     PackedScene cardScene;
@@ -93,13 +103,13 @@ public class Fobble : Node2D
 
     public void InitFobble()
     {
-        gameOver = false;
+        gameStatus = GameStatus.Waiting;
 
         winMessage.Visible = false;
         loseMessage.Visible = false;
         resetMessage.Visible = false;
-        leftSlot.Visible = true;
-        rightSlot.Visible = true;
+        leftSlot.Visible = false;
+        rightSlot.Visible = false;
 
         rng = new RandomNumberGenerator();
         rng.Randomize();
@@ -115,7 +125,7 @@ public class Fobble : Node2D
             deckOrder[i] = i;
 
         //Shuffle
-        int n = BASE_DECK.Length;
+        int n = BASE_DECK.Length-1;
         while (n > 1)
         {
             int k = rng.RandiRange(0, n);
@@ -130,6 +140,12 @@ public class Fobble : Node2D
         DrawCard(CardSlots.Right);
 
         UpdateScores();
+    }
+
+    public override void _Process(float delta)
+    {
+        leftSlot.Visible = gameStatus == GameStatus.Playing;
+        rightSlot.Visible = gameStatus == GameStatus.Playing;
     }
 
     public bool DrawCard(CardSlots slot)
@@ -179,24 +195,48 @@ public class Fobble : Node2D
 
     public void UpdateInput(Inputs input)
     {
-        if (leftCard.HasIcon(input.icon) && rightCard.HasIcon(input.icon))
+        bool localWon = input.LocalActive && leftCard.HasIcon(input.localIcon) && rightCard.HasIcon(input.localIcon);
+        bool netWon = input.NetActive && leftCard.HasIcon(input.netIcon) && rightCard.HasIcon(input.netIcon);
+
+        if (localWon && !netWon)
         {
             meScore++;
+            
+            if (!DrawCard(input.localSlot.Value))
+                GG();
         }
-        else
+        else if (netWon && !localWon)
         {
             themScore++;
+            
+            if (!DrawCard(input.netSlot.Value))
+                GG();
         }
+        else if (localWon && netWon)
+        {
+            themScore++;
+            meScore++;
 
-        if (!DrawCard(input.slot.Value))
-            GG();
+            if (input.localSlot == input.netSlot)
+            {
+                if (!DrawCard(input.localSlot.Value))
+                    GG();
+            }
+            else
+            {
+                if (!DrawCard(input.localSlot.Value))
+                    GG();
+                if (!DrawCard(input.netSlot.Value))
+                    GG();
+            }
+        }
 
         UpdateScores();
     }
 
     public void ResetGameState(GameState oldState)
     {
-        gameOver = oldState.gameOver;
+        gameStatus = oldState.status;
         deckOrder = oldState.deckOrder;
         deckIndex = oldState.deckIndex;
         meScore = oldState.playerOnePoints;
@@ -209,7 +249,7 @@ public class Fobble : Node2D
         {
             deckIndex = deckIndex,
             deckOrder = deckOrder,
-            gameOver = gameOver,
+            status = gameStatus,
             playerOnePoints = meScore,
             playerTwoPoints = themScore
         };
@@ -219,7 +259,7 @@ public class Fobble : Node2D
 
     public void GG()
     {
-        gameOver = true;
+        gameStatus = GameStatus.End;
         winMessage.Visible = meScore > themScore;
         loseMessage.Visible = !(meScore > themScore);
         resetMessage.Visible = true;
@@ -230,7 +270,7 @@ public class Fobble : Node2D
     public override void _Input(InputEvent ie)
     {
         //If mouse button click (but not held)
-        if (ie is InputEventKey && ie.IsPressed() && !ie.IsEcho() && ie.AsText() == "Space" && gameOver)
+        if (ie is InputEventKey && ie.IsPressed() && !ie.IsEcho() && ie.AsText() == "Space" && gameStatus == GameStatus.End)
         {
             InitFobble();
         }
@@ -247,28 +287,48 @@ public class Fobble : Node2D
         Two = 1
     }
 
-    public struct Inputs
+    public class Inputs
     {
-        public string icon;
-        public Fobble.CardSlots? slot;
+        public string localIcon;
+        public Fobble.CardSlots? localSlot;
+        public string netIcon;
+        public Fobble.CardSlots? netSlot;
 
-        public Inputs(string icon, Fobble.CardSlots slot)
+        public bool LocalActive
         {
-            this.icon = icon;
-            this.slot = slot;
+            get { return localIcon != null && localSlot != null; }
         }
 
-        public bool Active
+        public bool NetActive
         {
-            get { return icon != null && slot != null; }
+            get { return netIcon != null && netSlot != null; }
         }
+
+        public byte[] Encoded
+        {
+            get
+            {
+                return new byte[]
+                {
+                    localSlot == null ? (byte)255 : (byte)localSlot,
+                    (byte)Array.IndexOf(SYMBOLS, localIcon)
+                };
+            }
+        }
+    }
+
+    public enum GameStatus
+    {
+        Waiting = 0,
+        Playing = 1,
+        End = 2
     }
 
     public struct GameState
     {
         public Inputs input;
         public int[] deckOrder;
-        public bool gameOver;
+        public GameStatus status;
         public int playerOnePoints;
         public int playerTwoPoints;
         public int deckIndex;
