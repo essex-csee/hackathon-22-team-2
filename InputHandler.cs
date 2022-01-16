@@ -1,10 +1,13 @@
 using Godot;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 
 public class InputHandler : Node
 {
     private struct FrameState
     {
+        public bool actualInput;
         public Fobble.Inputs inputs;
         public Fobble.GameState gameState;
         public int frame;
@@ -18,20 +21,20 @@ public class InputHandler : Node
     const int PACKET_AMOUNT = 5;
     const int DUPLICATE_AMOUNT = 5;
 
-    int frameNum;
-    Fobble.Inputs[] prevInputs;
+    byte frameNum;
+    Fobble.Inputs[] inputArray;
     List<FrameState> stateQueue;
 
     PacketPeerUDP udpPeer;
     Thread networkThread;
     
-    Fobble.Inputs[] inputArrivals;
+    bool[] inputArrivals;
+    bool[] prevFrameInputArrivals;
     bool[] viableInputs;
     bool inputRecieved;
     Mutex inputArrayMutex;
     Mutex viableMutex;
     Mutex inputRecievedMutex;
-    bool[] prevFrameArrival;
     
     string currIcon;
     Fobble.CardSlots? currSlot; 
@@ -39,32 +42,43 @@ public class InputHandler : Node
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
     {
-        prevInputs = new Fobble.Inputs[256];
+        inputArray = new Fobble.Inputs[256];
         stateQueue = new List<FrameState>(ROLLBACK);
-
-        for (int i = 0; i < ROLLBACK; i++)
-        {
-            stateQueue.Add(new FrameState());
-        }
 
         udpPeer = new PacketPeerUDP();
         
-        inputArrivals = new Fobble.Inputs[256];
+        inputArrivals = new bool[256];
+        prevFrameInputArrivals = new bool[256];
         viableInputs = new bool[256];
         inputRecieved = false;
         inputArrayMutex = new Mutex();
         viableMutex = new Mutex();
         inputRecievedMutex = new Mutex();
 
-        for (int i = 0; i < INPUT_DELAY; i++)
+        for (int i = 0; i < 256; i++)
         {
-            viableInputs[i] = true;
-            inputArrivals[i] = new Fobble.Inputs();
-            prevInputs[i] = new Fobble.Inputs();
+            inputArray[i] = new Fobble.Inputs();
+            viableInputs[i] = i < INPUT_DELAY;
+            inputArrivals[i] = i < INPUT_DELAY;
         }
 
-        GD.Print(udpPeer.Listen(42069, "*"));
-        GD.Print(udpPeer.SetDestAddress("::1", 42069));
+        for (int i = 0; i < ROLLBACK; i++)
+        {
+            stateQueue.Add(new FrameState()
+            {
+                inputs = new Fobble.Inputs(),
+                frame = 0,
+                gameState = null,
+                actualInput = true
+            });
+            prevFrameInputArrivals[i] = true;
+        }
+    }
+
+    public void StartUDPPeer(string address, int port = 42069)
+    {
+        GD.Print(udpPeer.Listen(port, "*"));
+        GD.Print(udpPeer.SetDestAddress(address, port));
 
         networkThread = new Thread();
         networkThread.Start(this, "NetworkThreadInputs");
@@ -77,37 +91,53 @@ public class InputHandler : Node
 
         if (inputRecieved)
         {
-            inputArrayMutex.Lock();
-
-            if (viableInputs[(byte)frameNum])
+            if (stateQueue[0].actualInput)
             {
-                inputArrayMutex.Unlock();
                 inputRecievedMutex.Unlock();
                 HandleInput();
             }
             else
             {
-                //We don't have an input for this frame
-                inputArrayMutex.Unlock();
-                inputRecieved = false;
+                inputArrayMutex.Lock();
+                if (inputArrivals[stateQueue[0].frame])
+                {
+                    inputArrayMutex.Unlock();
+                    inputRecievedMutex.Unlock();
+                    HandleInput();
+                }
+                else
+                {
+                    inputArrayMutex.Unlock();
+                    inputRecieved = false;
+                    inputRecievedMutex.Unlock();
+
+                    byte[] packet = { 1, (byte)stateQueue[0].frame, (byte)(frameNum + INPUT_DELAY) };
+                    for (int i = 0; i < PACKET_AMOUNT; i++)
+                        udpPeer.PutPacket(packet);
+                }
             }
         }
-
-        inputRecievedMutex.Unlock();
-
-        if (!inputRecieved && Fobble.Instance.gameStatus == Fobble.GameStatus.Playing)
+        else if (Fobble.Instance.gameStatus == Fobble.GameStatus.Playing)
         {
+            inputRecievedMutex.Unlock();
             //Make a request for this frame
             for (int i = 0; i < PACKET_AMOUNT; i++)
-                udpPeer.PutPacket(new byte[] { 1, (byte)frameNum, (byte)(frameNum + INPUT_DELAY) });
+                udpPeer.PutPacket(new byte[] { 1, (byte)stateQueue[0].frame, (byte)(frameNum + INPUT_DELAY) });
 
             GD.Print("Waiting for net input " + frameNum);
         }
         else if (Fobble.Instance.gameStatus == Fobble.GameStatus.Waiting)
         {
+            inputRecievedMutex.Unlock();
+            byte[] packet = new byte[2 + Fobble.BASE_DECK.Length];
+            byte[] deckOrder = Fobble.CreateDeck();
+            Array.Copy(deckOrder, 0, packet, 2, Fobble.BASE_DECK.Length);
+            packet[0] = 2;
+            packet[1] = 0;
+            
             //Make a handshake
             for (int i = 0; i < PACKET_AMOUNT; i++)
-                udpPeer.PutPacket(new byte[] { 2, 0 });
+                udpPeer.PutPacket(packet);
         }
     }
 
@@ -119,12 +149,12 @@ public class InputHandler : Node
 
     public Fobble.Inputs GetInput(byte frame)
     {
-        return prevInputs[frame];
+        return inputArray[frame];
     }
 
     private void HandleInput()
     {
-        Fobble.GameState preState = Fobble.Instance.GetGameState();
+        Fobble.GameState preState = null;
 
         //Inputs made this frame
         Fobble.Inputs newInput =  new Fobble.Inputs
@@ -133,33 +163,113 @@ public class InputHandler : Node
             localSlot = currSlot
         };
 
-        prevInputs[(byte)(frameNum + INPUT_DELAY)] = newInput;
+        inputArray[(byte)(frameNum + INPUT_DELAY)] = newInput;
 
         inputArrayMutex.Lock();
 
-        Fobble.Inputs currInput = prevInputs[(byte)frameNum];
-        currInput.netIcon = inputArrivals[(byte)frameNum]?.netIcon;
-        currInput.netSlot = inputArrivals[(byte)frameNum]?.netSlot;
+        inputArray[(byte)(frameNum + INPUT_DELAY)].localIcon = currIcon;
+        inputArray[(byte)(frameNum + INPUT_DELAY)].localSlot = currSlot;
+
+        //Fobble.Inputs currInput = inputArray[(byte)frameNum];
+        //currInput.netIcon = inputArrivals[(byte)frameNum]?.netIcon;
+        //currInput.netSlot = inputArrivals[(byte)frameNum]?.netSlot;
 
         //Craft input recieved packet to send to other player
         byte[] packet = new byte[1 + 3 * DUPLICATE_AMOUNT];
         packet[0] = 0;
+        int inputCount = 0;
         for (int i = 0; i < DUPLICATE_AMOUNT; i++)
         {
-            Fobble.Inputs localInput = prevInputs[(byte)(frameNum + INPUT_DELAY - i)];
-            packet[(i*3) + 1] = (byte)frameNum;
-            packet[(i*3) + 2] = localInput.Encoded[0];
-            packet[(i*3) + 3] = localInput.Encoded[1];
+            Fobble.Inputs localInput = inputArray[(byte)(frameNum + INPUT_DELAY - i)];
+            if (!localInput.LocalActive)
+                continue;
+
+            packet[(inputCount*3) + 1] = (byte)(frameNum + INPUT_DELAY - i);
+            packet[(inputCount*3) + 2] = localInput.Encoded[0];
+            packet[(inputCount*3) + 3] = localInput.Encoded[1];
+            inputCount++;
         }
 
         //Send inputs
-        for (int i = 0; i < PACKET_AMOUNT; i++)
-            udpPeer.PutPacket(packet);
+        if (inputCount > 0)
+        {
+            byte[] finalPacket = new byte[1 + 3 * inputCount];
+            Array.Copy(packet, finalPacket, 1 + 3 * inputCount);
+            for (int i = 0; i < PACKET_AMOUNT; i++)
+                udpPeer.PutPacket(finalPacket);
+        }
+
+        Fobble.Inputs currInput = inputArray[(byte)frameNum];
+
+        //Make a guess input if there is none available
+        bool actualInput = true;
+        if (!inputArrivals[(byte)frameNum])
+        {
+            //Make no actual guess lol
+            currInput.netIcon = null;
+            currInput.netSlot = null;
+            actualInput = false;
+        }
+
+        //Reset arrival bool for old frame
+        inputArrivals[(byte)(frameNum + INPUT_DELAY*2 + ROLLBACK + 1)] = false;
+
+        List<bool> currFrameArrivalsLst = new List<bool>();
+        List<Fobble.Inputs> pastActualInputs = new List<Fobble.Inputs>();
+        bool currFrameArrival = inputArrivals[(byte)frameNum];
+        for (int i = 1; i < ROLLBACK + 1; i++)
+        {
+            currFrameArrivalsLst.Insert(0, inputArrivals[(byte)(frameNum - i)]);
+            if (inputArrivals[(byte)(frameNum - i)] != prevFrameInputArrivals[ROLLBACK - i])
+            {
+                pastActualInputs.Insert(0, inputArray[(byte)(frameNum - i)]);
+            }
+        }
+
+        inputArrayMutex.Unlock();
 
         viableMutex.Lock();
         viableInputs[(byte)(frameNum + INPUT_DELAY)] = true;
-        viableInputs[(byte)(frameNum - INPUT_DELAY)] = false;//Old input is no longer viable
+        viableInputs[(byte)(frameNum - INPUT_DELAY - ROLLBACK * 2)] = false;//Old input is no longer viable
         viableMutex.Unlock();
+
+        bool startRollback = false;
+        if (pastActualInputs.Count != 0)
+        {
+            Fobble.Inputs newPastActualInput = null;
+
+            for (int i = 0; i < stateQueue.Count; i++)
+            {
+                FrameState state = stateQueue[i];
+                //If we can replace the guess input
+                if (!prevFrameInputArrivals[i] && currFrameArrivalsLst[i])
+                {
+                    newPastActualInput = pastActualInputs[0];
+                    pastActualInputs.RemoveAt(0);
+
+                    state.inputs = newPastActualInput;
+
+                    if (!startRollback)
+                    {
+                        Fobble.Instance.ResetGameState(state.gameState);
+                        startRollback = true;
+                    }
+
+                    state.actualInput = true;
+                }
+
+                if (startRollback)
+                {
+                    //GD.Print("Rolling back");
+                    preState = Fobble.Instance.GetGameState();
+                    Fobble.Instance.UpdateAll(preState, state.inputs);
+                    state.gameState = preState;
+                }
+            }
+        }
+
+        preState = Fobble.Instance.GetGameState();
+        Fobble.Instance.UpdateAll(preState, currInput);
 
         //Dequeue the oldest state
         stateQueue.RemoveAt(0);
@@ -169,32 +279,22 @@ public class InputHandler : Node
         {
             frame = frameNum,
             inputs = currInput,
-            gameState = Fobble.Instance.GetGameState()
+            gameState = Fobble.Instance.GetGameState(),
+            actualInput = actualInput
         };
         stateQueue.Add(fs);
+
+        currFrameArrivalsLst.RemoveAt(0);
+        currFrameArrivalsLst.Insert(currFrameArrivalsLst.Count-1, currFrameArrival);
+        prevFrameInputArrivals = currFrameArrivalsLst.ToArray();
 
         frameNum++;
         currIcon = null;
         currSlot = null;
     }
 
-    private void UpdateQueueInputs(byte frame, Fobble.Inputs inputs)
-    {
-        for (int i = 0; i < ROLLBACK; i++)
-        {
-            if ((byte)stateQueue[i].frame == frame)
-            {
-                FrameState state = stateQueue[i];
-                state.inputs.netIcon = inputs.netIcon;
-                state.inputs.netSlot = inputs.netSlot;
-                stateQueue[i] = state;
-            }
-        }
-    }
-
     private void NetworkThreadInputs(object data)
     {
-        int packetIndex = 3;
         bool newInput = false;
         byte[] result = null;
 
@@ -227,34 +327,27 @@ public class InputHandler : Node
                     //Input recieved
                     case 0:
                     {
-                        int numPackets = result[1];
-                        if (numPackets > 0)
+                        //0FSIFSIFSI...
+
+                        inputArrayMutex.Lock();
+
+                        for (int packetIndex = 3; packetIndex < result.Length; packetIndex += 3)
                         {
-                            inputArrayMutex.Lock();
-                            
-                            while (packetIndex < result.Length)
+                            //Decode byte inputs
+                            byte frame = result[packetIndex - 2];
+                            byte icon = result[packetIndex];
+                            if (!inputArrivals[frame])//If it's not a valid input
                             {
-                                byte frame = result[packetIndex - 2];
-                                if (!viableInputs[frame])//If it's not a duplicate input
-                                {
-                                    //Decode byte inputs
-                                    byte icon = result[packetIndex];
-                                    Fobble.CardSlots? slot = null;
+                                Fobble.CardSlots? slot = null;
 
-                                    if (result[packetIndex] != 255)
-                                        slot = (Fobble.CardSlots)result[packetIndex - 1];
+                                if (result[packetIndex - 1] != 255)
+                                    slot = (Fobble.CardSlots)result[((byte)packetIndex) - 1];
 
-                                    Fobble.Inputs netInput = new Fobble.Inputs
-                                    {
-                                        netIcon = Fobble.SYMBOLS[icon],
-                                        netSlot = slot
-                                    };
-                                    inputArrivals[frame] = netInput;
-                                    newInput = true;
+                                inputArray[frame].netIcon = icon == 255 ? null : Fobble.SYMBOLS[icon];
+                                inputArray[frame].netSlot = slot;
 
-                                    UpdateQueueInputs(frame, netInput);
-                                }
-                                packetIndex += 2;
+                                inputArrivals[frame] = true;
+                                newInput = true;
                             }
                         }
                         inputArrayMutex.Unlock();
@@ -276,7 +369,6 @@ public class InputHandler : Node
                     case 1:
                     {
                         byte frameNum = result[1];
-                        byte numPackets = 0;
                         List<byte> packetArr = new List<byte>();
                         packetArr.Add(0);
 
@@ -291,20 +383,16 @@ public class InputHandler : Node
                                 break;
                             
                             packetArr.Add(frameNum);
-                            packetArr.AddRange(prevInputs[frameNum].Encoded);
+                            packetArr.AddRange(inputArray[frameNum].Encoded);
                             frameNum++;
-                            numPackets++;
                         }
 
                         inputArrayMutex.Unlock();
                         viableMutex.Unlock();
 
-                        if (numPackets > 0)
-                        {
-                            //Send inputs
-                            for (int i = 0; i < PACKET_AMOUNT; i++)
-                                udpPeer.PutPacket(packetArr.ToArray());
-                        }
+                        //Send inputs
+                        for (int i = 0; i < PACKET_AMOUNT; i++)
+                            udpPeer.PutPacket(packetArr.ToArray());
 
                         break;
                     }
@@ -313,20 +401,56 @@ public class InputHandler : Node
                     {
                         inputRecievedMutex.Lock();
 
-                        if (Fobble.Instance.gameStatus == Fobble.GameStatus.Waiting)
+                        if (result[1] == 0)
                         {
-                            Fobble.Instance.gameStatus = Fobble.GameStatus.Playing;
-                            inputRecieved = true;
                             inputRecievedMutex.Unlock();
+                            byte[] deckOrder = new byte[Fobble.BASE_DECK.Length];
+                            byte[] packet = new byte[2 + Fobble.BASE_DECK.Length];
+                            Array.Copy(result, 2, deckOrder, 0, Fobble.BASE_DECK.Length);
+                            Array.Copy(result, 2, packet, 2, Fobble.BASE_DECK.Length);
+
+                            packet[0] = 2;
+                            packet[1] = 1;
+ 
+                            Fobble.Instance.deckOrder = deckOrder;
+
+                            //Send reply handshake
+                            for (int i = 0; i < PACKET_AMOUNT; i++)
+                                udpPeer.PutPacket(packet);
                         }
-                        else
+                        else if (result[1] == 1)
                         {
-                            inputRecievedMutex.Unlock();
-                            if (result[1] == 0)
+                            byte[] deckOrder = new byte[Fobble.BASE_DECK.Length];
+                            Array.Copy(result, 2, deckOrder, 0, Fobble.BASE_DECK.Length);
+
+                            IStructuralEquatable se = deckOrder;
+                            if (se.Equals(Fobble.Instance.deckOrder, StructuralComparisons.StructuralEqualityComparer))
                             {
+                                if (Fobble.Instance.gameStatus == Fobble.GameStatus.Waiting)
+                                {
+                                    Fobble.Instance.gameStatus = Fobble.GameStatus.Playing;
+                                    inputRecieved = true;
+                                    inputRecievedMutex.Unlock();
+                                    Fobble.Instance.InitFobble();
+                                }
+                                else
+                                    inputRecievedMutex.Unlock();
+                            }
+                            else
+                            {
+                                inputRecievedMutex.Unlock();
+                                byte[] packet = new byte[2 + Fobble.BASE_DECK.Length];
+                                packet = new byte[2 + Fobble.BASE_DECK.Length];
+                                Array.Copy(result, 2, packet, 2, Fobble.BASE_DECK.Length);
+
+                                packet[0] = 2;
+                                packet[1] = 1;
+
+                                Fobble.Instance.deckOrder = deckOrder;
+
                                 //Send reply handshake
                                 for (int i = 0; i < PACKET_AMOUNT; i++)
-                                    udpPeer.PutPacket(new byte[]{ 2, 1 });
+                                    udpPeer.PutPacket(packet);
                             }
                         }
                         

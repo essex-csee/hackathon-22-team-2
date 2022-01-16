@@ -53,11 +53,10 @@ public class Fobble : Node2D
         get { return instance; }
     }
 
-    int[] deckOrder;
+    public byte[] deckOrder;
     int deckIndex = 0;
     public GameStatus gameStatus;
     
-    RandomNumberGenerator rng;
     PackedScene cardScene;
 
     Node2D leftSlot;
@@ -97,32 +96,42 @@ public class Fobble : Node2D
         resetMessage = GetNode<RichTextLabel>("ResetMessage");
         
         inputHandler = GetNode<InputHandler>("InputHandler");
+        gameStatus = GameStatus.Waiting;
+    }
 
-        InitFobble();
+    public void StartUDPConnection(string address, int port)
+    {
+        inputHandler.StartUDPPeer(address, port);
     }
 
     public void InitFobble()
     {
-        gameStatus = GameStatus.Waiting;
-
         winMessage.Visible = false;
         loseMessage.Visible = false;
         resetMessage.Visible = false;
-        leftSlot.Visible = false;
-        rightSlot.Visible = false;
-
-        rng = new RandomNumberGenerator();
-        rng.Randomize();
+        leftSlot.Visible = true;
+        rightSlot.Visible = true;
 
         themScore = 0;
         meScore = 0;
 
         deckIndex = BASE_DECK.Length - 1;
 
+        DrawCard(CardSlots.Left);
+        DrawCard(CardSlots.Right);
+
+        UpdateScores();
+    }
+
+    public static byte[] CreateDeck()
+    {
+        RandomNumberGenerator rng = new RandomNumberGenerator();
+        rng.Randomize();
+
         //Create the deck
-        deckOrder = new int[BASE_DECK.Length];
-        for (int i = 0; i < deckOrder.Length; i++)
-            deckOrder[i] = i;
+        byte[] deck = new byte[BASE_DECK.Length];
+        for (byte i = 0; i < BASE_DECK.Length; i++)
+            deck[i] = i;
 
         //Shuffle
         int n = BASE_DECK.Length-1;
@@ -131,15 +140,12 @@ public class Fobble : Node2D
             int k = rng.RandiRange(0, n);
             n--;
 
-            var temp = deckOrder[n];
-            deckOrder[n] = deckOrder[k];
-            deckOrder[k] = temp;
+            byte temp = deck[n];
+            deck[n] = deck[k];
+            deck[k] = temp;
         }
 
-        DrawCard(CardSlots.Left);
-        DrawCard(CardSlots.Right);
-
-        UpdateScores();
+        return deck;
     }
 
     public override void _Process(float delta)
@@ -193,10 +199,13 @@ public class Fobble : Node2D
         themScoreLabel.Text = themScore.ToString();
     }
 
-    public void UpdateInput(Inputs input)
+    public void UpdateAll(GameState state, Inputs input)
     {
         bool localWon = input.LocalActive && leftCard.HasIcon(input.localIcon) && rightCard.HasIcon(input.localIcon);
         bool netWon = input.NetActive && leftCard.HasIcon(input.netIcon) && rightCard.HasIcon(input.netIcon);
+
+        if (input.NetActive)
+            GD.Print(localWon, netWon);
 
         if (localWon && !netWon)
         {
@@ -324,10 +333,10 @@ public class Fobble : Node2D
         End = 2
     }
 
-    public struct GameState
+    public class GameState
     {
         public Inputs input;
-        public int[] deckOrder;
+        public byte[] deckOrder;
         public GameStatus status;
         public int playerOnePoints;
         public int playerTwoPoints;
