@@ -103,6 +103,7 @@ public class InputHandler : Node
     {
         currSlot = slot;
         currIcon = icon;
+        GD.Print("Local input made " + icon);
     }
 
     private void HandleInput()
@@ -219,7 +220,7 @@ public class InputHandler : Node
                         if (result[2] != 255)
                             slot = (Fobble.CardSlots)result[2];
 
-                        if (deckIndex == Fobble.Instance.deckIndex)
+                        if (deckIndex == Fobble.Instance.deckIndex || deckIndex == 255)
                         {
                             currInput.netIcon = icon == 255 ? null : Fobble.SYMBOLS[icon];
                             currInput.netSlot = slot;
@@ -229,6 +230,7 @@ public class InputHandler : Node
                         else
                         {
                             GD.Print("Discarded input " + currInput.netIcon);
+                            GD.Print(frame, " ", icon, " ", deckIndex, " ", slot);
                         }
 
                         newInput = true;
