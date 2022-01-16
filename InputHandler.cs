@@ -270,10 +270,6 @@ public class InputHandler : Node
                     pastActualInputs.RemoveAt(0);
 
                     state.inputs = newPastActualInput;
-                    if (state.frame == inputFrame)
-                    {
-                        GD.Print("Input frame ", inputFrame, " net active ", state.inputs.NetActive);
-                    }
 
                     if (!startRollback && (state.inputs.LocalActive || state.inputs.NetActive))
                     {
@@ -377,7 +373,6 @@ public class InputHandler : Node
 
                                 inputArrivals[frame] = true;
                                 newInput = true;
-                                inputFrame = frame;
                                 if (icon != 255)
                                     GD.Print("new input  - frame: ", frame, " , icon: ",inputArray[frame].netIcon);
                             }
