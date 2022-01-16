@@ -203,24 +203,30 @@ public class Fobble : Node2D
 
     public void UpdateAll(GameState state, Inputs input)
     {
+        if (!input.LocalActive && !input.NetActive)
+            return;
+
         bool localWon = input.LocalActive && Card.HasIcon(leftCardInd, input.localIcon) && Card.HasIcon(rightCardInd, input.localIcon);
-        bool localLost = input.LocalActive && !(Card.HasIcon(leftCardInd, input.localIcon) && Card.HasIcon(rightCardInd, input.localIcon));
+        bool localLost = input.LocalActive && (!Card.HasIcon(leftCardInd, input.localIcon) || !Card.HasIcon(rightCardInd, input.localIcon));
         bool netWon = input.NetActive && Card.HasIcon(leftCardInd, input.netIcon) && Card.HasIcon(rightCardInd, input.netIcon);
-        bool netLost = input.NetActive && !(Card.HasIcon(leftCardInd, input.netIcon) && Card.HasIcon(rightCardInd, input.netIcon));
+        bool netLost = input.NetActive && (!Card.HasIcon(leftCardInd, input.netIcon) || !Card.HasIcon(rightCardInd, input.netIcon));
 
         if (localWon && netWon)
         {
+            GD.Print("draw");
             meScore++;
             themScore++;
             drawSound.Play(0);
         }
         else if (localWon || netLost)
         {
+            GD.Print(localWon ? "we won" : "they lost");
             meScore++;
             winSound.Play(0);
         }
         else if (netWon || localLost)
         {
+            GD.Print(netWon ? "they won" : "we lost");
             themScore++;
             loseSound.Play(0);
         }

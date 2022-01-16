@@ -71,7 +71,7 @@ public class Card : Node2D
 
     public static bool HasIcon(int cardIndex, string icon)
     {
-        string[] icons = Fobble.BASE_DECK[cardIndex];
+        string[] icons = Fobble.BASE_DECK[Fobble.Instance.deckOrder[cardIndex]];
         for (int i = 0; i < icons.Length; i++)
         {
             if (icons[i] == icon)
