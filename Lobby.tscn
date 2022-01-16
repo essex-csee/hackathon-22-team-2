@@ -52,7 +52,7 @@ position = Vector2( 236, 161 )
 texture = ExtResource( 5 )
 
 [node name="Bee" type="Sprite" parent="Sprites"]
-position = Vector2( 287, 378 )
+position = Vector2( 221, 381 )
 texture = ExtResource( 9 )
 
 [node name="Car" type="Sprite" parent="Sprites"]
@@ -60,7 +60,7 @@ position = Vector2( 297, 553 )
 texture = ExtResource( 11 )
 
 [node name="Carrot" type="Sprite" parent="Sprites"]
-position = Vector2( 178, 402 )
+position = Vector2( 446, 447 )
 texture = ExtResource( 4 )
 
 [node name="Dog" type="Sprite" parent="Sprites"]
@@ -68,15 +68,15 @@ position = Vector2( 655, 87 )
 texture = ExtResource( 12 )
 
 [node name="Duck" type="Sprite" parent="Sprites"]
-position = Vector2( 676, 434 )
+position = Vector2( 631, 439 )
 texture = ExtResource( 13 )
 
 [node name="Earth" type="Sprite" parent="Sprites"]
-position = Vector2( 808, 548 )
+position = Vector2( 894, 545 )
 texture = ExtResource( 6 )
 
 [node name="Eyes" type="Sprite" parent="Sprites"]
-position = Vector2( 549, 534 )
+position = Vector2( 560, 538 )
 texture = ExtResource( 14 )
 
 [node name="Fish" type="Sprite" parent="Sprites"]
@@ -84,7 +84,7 @@ position = Vector2( 155, 57 )
 texture = ExtResource( 15 )
 
 [node name="Gold" type="Sprite" parent="Sprites"]
-position = Vector2( 184, 524 )
+position = Vector2( 187, 527 )
 texture = ExtResource( 16 )
 
 [node name="Helicopter" type="Sprite" parent="Sprites"]
@@ -100,7 +100,7 @@ position = Vector2( 70, 68 )
 texture = ExtResource( 7 )
 
 [node name="King" type="Sprite" parent="Sprites"]
-position = Vector2( 97, 504 )
+position = Vector2( 96, 489 )
 texture = ExtResource( 8 )
 
 [node name="Love" type="Sprite" parent="Sprites"]
@@ -108,11 +108,11 @@ position = Vector2( 308, 61 )
 texture = ExtResource( 2 )
 
 [node name="Moon" type="Sprite" parent="Sprites"]
-position = Vector2( 888, 482 )
+position = Vector2( 822, 453 )
 texture = ExtResource( 20 )
 
 [node name="Nail" type="Sprite" parent="Sprites"]
-position = Vector2( 902, 398 )
+position = Vector2( 954, 398 )
 texture = ExtResource( 25 )
 
 [node name="Orange" type="Sprite" parent="Sprites"]
@@ -140,11 +140,11 @@ position = Vector2( 817, 254 )
 texture = ExtResource( 19 )
 
 [node name="Ufo" type="Sprite" parent="Sprites"]
-position = Vector2( 302, 472 )
+position = Vector2( 303, 458 )
 texture = ExtResource( 28 )
 
 [node name="Volcano" type="Sprite" parent="Sprites"]
-position = Vector2( 793, 454 )
+position = Vector2( 733, 361 )
 texture = ExtResource( 26 )
 
 [node name="Windmill" type="Sprite" parent="Sprites"]
@@ -156,7 +156,7 @@ position = Vector2( 113, 294 )
 texture = ExtResource( 29 )
 
 [node name="Yellow" type="Sprite" parent="Sprites"]
-position = Vector2( 418, 527 )
+position = Vector2( 397, 535 )
 texture = ExtResource( 31 )
 
 [node name="Zeppelin" type="Sprite" parent="Sprites"]

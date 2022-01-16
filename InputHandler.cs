@@ -22,7 +22,6 @@ public class InputHandler : Node
 
     //Number of packets to send when sending. In order to mitigate UDP loses.
     const int PACKET_AMOUNT = 1;
-    const int DUPLICATE_AMOUNT = 5;
 
     byte frameNum;
     Fobble.Inputs[] inputArray;
@@ -31,14 +30,8 @@ public class InputHandler : Node
     PacketPeerUDP udpPeer;
     Thread networkThread;
     
-    bool[] inputArrivals;
-    bool[] prevFrameInputArrivals;
-    bool[] viableInputs;
     bool inputRecieved;
-    Mutex currInputMutex;
     Fobble.Inputs currInput;
-    Mutex inputArrayMutex;
-    Mutex viableMutex;
     Mutex inputRecievedMutex;
     
     string currIcon;
@@ -55,19 +48,12 @@ public class InputHandler : Node
 
         udpPeer = new PacketPeerUDP();
         
-        inputArrivals = new bool[256];
-        prevFrameInputArrivals = new bool[256];
-        viableInputs = new bool[256];
         inputRecieved = false;
-        inputArrayMutex = new Mutex();
-        viableMutex = new Mutex();
         inputRecievedMutex = new Mutex();
 
         for (int i = 0; i < 256; i++)
         {
             inputArray[i] = new Fobble.Inputs();
-            viableInputs[i] = i < INPUT_DELAY;
-            inputArrivals[i] = i < INPUT_DELAY;
         }
 
         for (int i = 0; i < ROLLBACK; i++)
@@ -79,7 +65,6 @@ public class InputHandler : Node
                 gameState = null,
                 actualInput = true
             });
-            prevFrameInputArrivals[i] = true;
         }
     }
 
