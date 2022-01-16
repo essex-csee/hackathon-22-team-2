@@ -93,7 +93,6 @@ public class InputHandler : Node
         packet[0] = 2;
         packet[1] = 0;
         
-        GD.Print("Putting handshake");
         //Make a handshake
         for (int i = 0; i < PACKET_AMOUNT; i++)
             udpPeer.PutPacket(packet);
@@ -103,7 +102,6 @@ public class InputHandler : Node
     {
         currSlot = slot;
         currIcon = icon;
-        GD.Print("Local input made " + icon);
     }
 
     private void HandleInput()
@@ -117,10 +115,6 @@ public class InputHandler : Node
         {
             if (Input.IsKeyPressed((int)KeyList.Space))
             {
-                //GD.Print("Reset");
-                //Fobble.Instance.deckOrder = Fobble.CreateDeck();
-                
-                //Fobble.Instance.gameStatus = Fobble.GameStatus.Waiting;
                 GetTree().Quit();
             }
             return;
@@ -128,26 +122,6 @@ public class InputHandler : Node
 
         if (Fobble.Instance.gameStatus != Fobble.GameStatus.Playing)
             return;
-        
-        inputRecievedMutex.Lock();
-
-        // if (currInput.LocalActive)
-        // {
-        //     GD.Print("LOCAL");
-        //     GD.Print(currInput.localIcon);
-        //     GD.Print(currInput.localSlot);
-        //     GD.Print(frameNum);
-        //     GD.Print("-----");
-        // }
-        // if (currInput.NetActive)
-        // {
-        //     GD.Print("NET");
-        //     GD.Print(currInput.netIcon);
-        //     GD.Print(currInput.netSlot);
-        //     GD.Print(frameNum);
-        //     GD.Print("-----");
-        // }
-        inputRecievedMutex.Unlock();
 
         Fobble.Instance.UpdateAll(currInput);
 
@@ -165,7 +139,6 @@ public class InputHandler : Node
         //Craft input recieved packet to send to other player
         if (currInput.LocalActive)
         {
-            GD.Print("Sending input " + currInput.localIcon);
             byte[] packet = new byte[5];
             packet[0] = 0;
 
@@ -224,13 +197,6 @@ public class InputHandler : Node
                         {
                             currInput.netIcon = icon == 255 ? null : Fobble.SYMBOLS[icon];
                             currInput.netSlot = slot;
-
-                            GD.Print("Got net input " + currInput.netIcon);
-                        }
-                        else
-                        {
-                            GD.Print("Discarded input " + currInput.netIcon);
-                            GD.Print(frame, " ", icon, " ", deckIndex, " ", slot);
                         }
 
                         newInput = true;
@@ -257,7 +223,6 @@ public class InputHandler : Node
 
                         if (result[1] == 0)
                         {
-                            GD.Print("Handshake recieved - replying");
                             inputRecievedMutex.Unlock();
                             byte[] deckOrder = new byte[Fobble.BASE_DECK.Length];
                             byte[] packet = new byte[2 + Fobble.BASE_DECK.Length];
@@ -275,7 +240,6 @@ public class InputHandler : Node
                         }
                         else if (result[1] == 1)
                         {
-                            GD.Print("Handshake recieved - replying 2");
                             inputRecievedMutex.Unlock();
                             byte[] deckOrder = new byte[Fobble.BASE_DECK.Length];
                             Array.Copy(result, 2, deckOrder, 0, Fobble.BASE_DECK.Length);
@@ -297,7 +261,6 @@ public class InputHandler : Node
                         }
                         else if (result[1] == 2)
                         {
-                            GD.Print("Handshake recieved - starting");
                             if (Fobble.Instance.gameStatus == Fobble.GameStatus.Waiting)
                             {
                                 frameNum = 0;
