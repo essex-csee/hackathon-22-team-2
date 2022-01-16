@@ -201,7 +201,7 @@ public class Fobble : Node2D
         themScoreLabel.Text = themScore.ToString();
     }
 
-    public void UpdateAll(GameState state, Inputs input)
+    public void UpdateAll(Inputs input)
     {
         if (!input.LocalActive && !input.NetActive)
             return;
@@ -272,31 +272,6 @@ public class Fobble : Node2D
         UpdateScores();
     }
 
-    public void ResetGameState(GameState oldState)
-    {
-        gameStatus = oldState.status;
-        deckIndex = oldState.deckIndex;
-        meScore = oldState.playerOnePoints;
-        themScore = oldState.playerTwoPoints;
-        leftCardInd = oldState.leftCardIndex;
-        rightCardInd = oldState.rightCardIndex;
-    }
-
-    public GameState GetGameState()
-    {
-        GameState state = new GameState
-        {
-            deckIndex = deckIndex,
-            status = gameStatus,
-            playerOnePoints = meScore,
-            playerTwoPoints = themScore,
-            leftCardIndex = leftCardInd,
-            rightCardIndex = rightCardInd
-        };
-
-        return state;
-    }
-
     public void GG()
     {
         gameStatus = GameStatus.End;
@@ -307,24 +282,10 @@ public class Fobble : Node2D
         rightSlot.Visible = false;
     }
 
-    public override void _Input(InputEvent ie)
-    {
-        //If mouse button click (but not held)
-        if (ie is InputEventKey && ie.IsPressed() && !ie.IsEcho() && ie.AsText() == "Space" && gameStatus == GameStatus.End)
-        {
-            InitFobble();
-        }
-    }
-
     public enum CardSlots
     {
         Left = 0,
         Right = 1
-    }
-    public enum Players
-    {
-        One = 0,
-        Two = 1
     }
 
     public class Inputs
@@ -362,15 +323,5 @@ public class Fobble : Node2D
         Waiting = 0,
         Playing = 1,
         End = 2
-    }
-
-    public class GameState
-    {
-        public GameStatus status;
-        public int playerOnePoints;
-        public int playerTwoPoints;
-        public int deckIndex;
-        public int leftCardIndex;
-        public int rightCardIndex;
     }
 }

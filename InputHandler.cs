@@ -5,14 +5,6 @@ using System.Collections.Generic;
 
 public class InputHandler : Node
 {
-    private struct FrameState
-    {
-        public bool actualInput;
-        public Fobble.Inputs inputs;
-        public Fobble.GameState gameState;
-        public byte frame;
-    }
-
     Label statusLabel;
     string status;
 
@@ -24,8 +16,6 @@ public class InputHandler : Node
     const int PACKET_AMOUNT = 1;
 
     byte frameNum;
-    Fobble.Inputs[] inputArray;
-    List<FrameState> stateQueue;
 
     PacketPeerUDP udpPeer;
     Thread networkThread;
@@ -43,29 +33,11 @@ public class InputHandler : Node
         statusLabel = GetParent().GetNode<Label>("NetStatusLabel");
 
         currInput = new Fobble.Inputs();
-        inputArray = new Fobble.Inputs[256];
-        stateQueue = new List<FrameState>(ROLLBACK);
 
         udpPeer = new PacketPeerUDP();
         
         inputRecieved = false;
         inputRecievedMutex = new Mutex();
-
-        for (int i = 0; i < 256; i++)
-        {
-            inputArray[i] = new Fobble.Inputs();
-        }
-
-        for (int i = 0; i < ROLLBACK; i++)
-        {
-            stateQueue.Add(new FrameState()
-            {
-                inputs = new Fobble.Inputs(),
-                frame = (byte)i,
-                gameState = null,
-                actualInput = true
-            });
-        }
     }
 
     public void StartUDPPeer(string address, int port = 42069)
@@ -121,18 +93,10 @@ public class InputHandler : Node
         currIcon = icon;
     }
 
-    public Fobble.Inputs GetInput(byte frame)
-    {
-        return inputArray[frame];
-    }
-
     private void HandleInput()
     {
         if (Fobble.Instance.gameStatus != Fobble.GameStatus.Playing)
             return;
-
-        Fobble.GameState preState = null;
-
         
         inputRecievedMutex.Lock();
         //Inputs made this frame
@@ -169,8 +133,7 @@ public class InputHandler : Node
         for (int i = 0; i < PACKET_AMOUNT; i++)
             udpPeer.PutPacket(packet);
 
-        preState = Fobble.Instance.GetGameState();
-        Fobble.Instance.UpdateAll(preState, currInput);
+        Fobble.Instance.UpdateAll(currInput);
 
         Fobble.Instance.UpdateUI();
 
@@ -229,9 +192,6 @@ public class InputHandler : Node
                         currInput.netSlot = slot;
 
                         newInput = true;
-                        if (icon != 255)
-                            GD.Print("new input  - frame: ", frame, " , icon: ",inputArray[frame].netIcon);
-                        
 
                         inputRecievedMutex.Unlock();
 
