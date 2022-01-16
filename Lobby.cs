@@ -4,7 +4,7 @@ using System;
 public class Lobby : Node2D
 {
     PackedScene gameScene;
-    TextEdit address;
+    LineEdit address;
     string text;
 
     // Called when the node enters the scene tree for the first time.
@@ -12,7 +12,7 @@ public class Lobby : Node2D
     {
         gameScene = GD.Load<PackedScene>("res://Fobble.tscn");
 
-        address = GetNode<TextEdit>("Panel/TextEdit");
+        address = GetNode<LineEdit>("Panel/LineEdit");
     }
 
     Fobble game = null;
@@ -22,7 +22,7 @@ public class Lobby : Node2D
         GD.Print(game);
         game.Connect("ready", this, "_on_Game_ready");
 
-        text = address.Text;
+        text = address.Text != null && address.Text != "" ?  address.Text : "::1";
 
         GetTree().Root.AddChild(game);
     }
