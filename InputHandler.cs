@@ -58,33 +58,45 @@ public class InputHandler : Node
         {
             inputRecievedMutex.Unlock();
             HandleInput();
-            //Make a request for this frame
-            //for (int i = 0; i < PACKET_AMOUNT; i++)
-            //    udpPeer.PutPacket(new byte[] { 1, stateQueue[0].frame, (byte)(frameNum + INPUT_DELAY) });
+            
+            status = "";
         }
         else if (Fobble.Instance.gameStatus == Fobble.GameStatus.Waiting)
         {
-            byte[] deckOrder = Fobble.Instance.deckOrder;
-            if (deckOrder == null)
-            {
-                deckOrder = Fobble.CreateDeck();
-                Fobble.Instance.deckOrder = deckOrder;
-            }
+            SendHandshake();
 
             inputRecievedMutex.Unlock();
-            byte[] packet = new byte[2 + Fobble.BASE_DECK.Length];
-            Array.Copy(deckOrder, 0, packet, 2, Fobble.BASE_DECK.Length);
-            packet[0] = 2;
-            packet[1] = 0;
-            
-            //Make a handshake
-            for (int i = 0; i < PACKET_AMOUNT; i++)
-                udpPeer.PutPacket(packet);
             
             status = "Waiting to connect";
         }
+        else if (Fobble.Instance.gameStatus == Fobble.GameStatus.End)
+        {
+            inputRecievedMutex.Unlock();
+            HandleInput();
+            
+            status = "GG";
+        }
 
         statusLabel.Text = status;
+    }
+
+    private void SendHandshake()
+    {
+        byte[] deckOrder = Fobble.Instance.deckOrder;
+        if (deckOrder == null)
+        {
+            deckOrder = Fobble.CreateDeck();
+            Fobble.Instance.deckOrder = deckOrder;
+        }
+        byte[] packet = new byte[2 + Fobble.BASE_DECK.Length];
+        Array.Copy(deckOrder, 0, packet, 2, Fobble.BASE_DECK.Length);
+        packet[0] = 2;
+        packet[1] = 0;
+        
+        GD.Print("Putting handshake");
+        //Make a handshake
+        for (int i = 0; i < PACKET_AMOUNT; i++)
+            udpPeer.PutPacket(packet);
     }
 
     public void InputMade(Fobble.CardSlots slot, string icon)
@@ -95,6 +107,19 @@ public class InputHandler : Node
 
     private void HandleInput()
     {
+        if (Fobble.Instance.gameStatus == Fobble.GameStatus.End)
+        {
+            GD.Print("End");
+            if (Input.IsKeyPressed((int)KeyList.Space))
+            {
+                GD.Print("Reset");
+                Fobble.Instance.deckOrder = Fobble.CreateDeck();
+                
+                Fobble.Instance.gameStatus = Fobble.GameStatus.Waiting;
+            }
+            return;
+        }
+
         if (Fobble.Instance.gameStatus != Fobble.GameStatus.Playing)
             return;
         
@@ -154,7 +179,7 @@ public class InputHandler : Node
             if (Fobble.Instance.gameStatus == Fobble.GameStatus.End)
             {
                 inputRecievedMutex.Unlock();
-                return;
+                continue;
             }
 
             inputRecievedMutex.Unlock();
@@ -163,13 +188,6 @@ public class InputHandler : Node
 
             if (result != null && result.Length >= 1)
             {
-                // string strStatus = "";
-                // foreach (byte b in result)
-                // {
-                //     strStatus += b + " ";
-                // }
-                // GD.Print(strStatus);
-
                 byte status = result[0];
                 switch (status)
                 {
@@ -211,6 +229,7 @@ public class InputHandler : Node
                     //Game start / handshake
                     case 2:
                     {
+                        GD.Print("Handshake recieved");
                         inputRecievedMutex.Lock();
 
                         if (result[1] == 0)

@@ -291,6 +291,7 @@ public class Fobble : Node2D
         resetMessage.Visible = true;
         leftSlot.Visible = false;
         rightSlot.Visible = false;
+        initialised = false;
 
         if (meScore == themScore)
         {
