@@ -1,0 +1,21 @@
+[remap]
+
+importer="wav"
+type="AudioStreamSample"
+path="res://.import/WinGame.wav-2a2f9f324b769f61be59d042756b7588.sample"
+
+[deps]
+
+source_file="res://WinGame.wav"
+dest_files=[ "res://.import/WinGame.wav-2a2f9f324b769f61be59d042756b7588.sample" ]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop=false
+compress/mode=0

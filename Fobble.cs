@@ -80,6 +80,9 @@ public class Fobble : Node2D
     AudioStreamPlayer winSound;
     AudioStreamPlayer drawSound;
     AudioStreamPlayer loseSound;
+    AudioStreamPlayer winGameSound;
+    AudioStreamPlayer drawGameSound;
+    AudioStreamPlayer loseGameSound;
 
     InputHandler inputHandler;
 
@@ -93,6 +96,9 @@ public class Fobble : Node2D
         winSound = GetNode<AudioStreamPlayer>("WinSound");
         drawSound = GetNode<AudioStreamPlayer>("DrawSound");
         loseSound = GetNode<AudioStreamPlayer>("LoseSound");
+        winGameSound = GetNode<AudioStreamPlayer>("WinGameSound");
+        drawGameSound = GetNode<AudioStreamPlayer>("DrawGameSound");
+        loseGameSound = GetNode<AudioStreamPlayer>("LoseGameSound");
 
         leftSlot = GetNode<Node2D>("CardSlotLeft");
         rightSlot = GetNode<Node2D>("CardSlotRight");
@@ -234,11 +240,16 @@ public class Fobble : Node2D
         bool leftSlotUsed = (input.LocalActive && input.localSlot == CardSlots.Left) || (input.NetActive && input.netSlot == CardSlots.Left);
         bool rightSlotUsed = (input.LocalActive && input.localSlot == CardSlots.Right) || (input.NetActive && input.netSlot == CardSlots.Right);
 
+        bool deckOut = false;
         if (leftSlotUsed)
-            DrawCard(CardSlots.Left);
-        if (rightSlotUsed)
-            DrawCard(CardSlots.Right);
+            deckOut = !DrawCard(CardSlots.Left);
+        if (rightSlotUsed && ! deckOut)
+            deckOut = !DrawCard(CardSlots.Right);
 
+        if (deckOut)
+        {
+            GG();
+        }
     }
 
     public void UpdateUI()
@@ -280,6 +291,19 @@ public class Fobble : Node2D
         resetMessage.Visible = true;
         leftSlot.Visible = false;
         rightSlot.Visible = false;
+
+        if (meScore == themScore)
+        {
+            drawGameSound.Play(0);
+        }
+        else if (meScore > themScore)
+        {
+            winGameSound.Play(0);
+        }
+        else
+        {
+            loseGameSound.Play(0);
+        }
     }
 
     public enum CardSlots

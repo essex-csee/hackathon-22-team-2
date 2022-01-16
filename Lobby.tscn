@@ -167,33 +167,42 @@ texture = ExtResource( 30 )
 position = Vector2( 490, 192 )
 texture = ExtResource( 32 )
 
-[node name="TextEdit" type="TextEdit" parent="."]
-margin_left = 366.0
-margin_top = 294.0
-margin_right = 618.0
-margin_bottom = 334.0
+[node name="Panel" type="Panel" parent="."]
+margin_left = 354.0
+margin_top = 261.0
+margin_right = 627.0
+margin_bottom = 373.0
 __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="RichTextLabel" type="RichTextLabel" parent="."]
-margin_left = 447.0
-margin_top = 275.0
-margin_right = 537.0
-margin_bottom = 294.0
+[node name="TextEdit" type="TextEdit" parent="Panel"]
+margin_left = 8.0
+margin_top = 32.0
+margin_right = 260.0
+margin_bottom = 72.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="RichTextLabel" type="RichTextLabel" parent="Panel"]
+margin_left = 89.0
+margin_top = 13.0
+margin_right = 179.0
+margin_bottom = 32.0
 text = "Peer Address"
 __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="Button" type="Button" parent="."]
-margin_left = 461.0
-margin_top = 345.0
-margin_right = 525.0
-margin_bottom = 365.0
+[node name="Button" type="Button" parent="Panel"]
+margin_left = 103.0
+margin_top = 83.0
+margin_right = 167.0
+margin_bottom = 103.0
 text = "Connect"
 __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[connection signal="pressed" from="Button" to="." method="_on_Button_pressed"]
+[connection signal="pressed" from="Panel/Button" to="." method="_on_Button_pressed"]
