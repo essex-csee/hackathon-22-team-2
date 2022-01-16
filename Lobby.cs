@@ -12,7 +12,7 @@ public class Lobby : Node2D
     {
         gameScene = GD.Load<PackedScene>("res://Fobble.tscn");
 
-        address = GetNode<TextEdit>("TextEdit");
+        address = GetNode<TextEdit>("Panel/TextEdit");
     }
 
     Fobble game = null;
