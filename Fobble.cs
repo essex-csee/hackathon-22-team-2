@@ -54,7 +54,7 @@ public class Fobble : Node2D
     }
 
     public byte[] deckOrder;
-    int deckIndex = BASE_DECK.Length - 1;
+    public int deckIndex = BASE_DECK.Length - 1;
     public GameStatus gameStatus;
     
     PackedScene cardScene;
@@ -219,20 +219,20 @@ public class Fobble : Node2D
 
         if (localWon && netWon)
         {
-            GD.Print("draw");
+            //GD.Print("draw");
             meScore++;
             themScore++;
             drawSound.Play(0);
         }
         else if (localWon || netLost)
         {
-            GD.Print(localWon ? "we won" : "they lost");
+            //GD.Print(localWon ? "we won" : "they lost");
             meScore++;
             winSound.Play(0);
         }
         else if (netWon || localLost)
         {
-            GD.Print(netWon ? "they won" : "we lost");
+            //GD.Print(netWon ? "they won" : "we lost");
             themScore++;
             loseSound.Play(0);
         }
