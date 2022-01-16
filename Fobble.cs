@@ -54,7 +54,7 @@ public class Fobble : Node2D
     }
 
     public byte[] deckOrder;
-    int deckIndex = 0;
+    int deckIndex = BASE_DECK.Length - 1;
     public GameStatus gameStatus;
     
     PackedScene cardScene;
@@ -64,6 +64,8 @@ public class Fobble : Node2D
 
     Card leftCard;
     Card rightCard;
+    int leftCardInd;
+    int rightCardInd;
 
     int themScore = 0;
     int meScore = 0;
@@ -75,6 +77,10 @@ public class Fobble : Node2D
     RichTextLabel loseMessage;
     RichTextLabel resetMessage;
 
+    AudioStreamPlayer winSound;
+    AudioStreamPlayer drawSound;
+    AudioStreamPlayer loseSound;
+
     InputHandler inputHandler;
 
     // Called when the node enters the scene tree for the first time.
@@ -83,6 +89,10 @@ public class Fobble : Node2D
         instance = this;
 
         cardScene = GD.Load<PackedScene>("res://Card.tscn");
+
+        winSound = GetNode<AudioStreamPlayer>("WinSound");
+        drawSound = GetNode<AudioStreamPlayer>("DrawSound");
+        loseSound = GetNode<AudioStreamPlayer>("LoseSound");
 
         leftSlot = GetNode<Node2D>("CardSlotLeft");
         rightSlot = GetNode<Node2D>("CardSlotRight");
@@ -134,11 +144,11 @@ public class Fobble : Node2D
             deck[i] = i;
 
         //Shuffle
-        int n = BASE_DECK.Length-1;
+        int n = BASE_DECK.Length;
         while (n > 1)
         {
-            int k = rng.RandiRange(0, n);
             n--;
+            int k = rng.RandiRange(0, n);
 
             byte temp = deck[n];
             deck[n] = deck[k];
@@ -148,10 +158,17 @@ public class Fobble : Node2D
         return deck;
     }
 
+    private bool initialised = false;
     public override void _Process(float delta)
     {
         leftSlot.Visible = gameStatus == GameStatus.Playing;
         rightSlot.Visible = gameStatus == GameStatus.Playing;
+
+        if (gameStatus == GameStatus.Playing && !initialised)
+        {
+            initialised = true;
+            Fobble.Instance.InitFobble();
+        }
     }
 
     public bool DrawCard(CardSlots slot)
@@ -159,29 +176,14 @@ public class Fobble : Node2D
         if (deckIndex == -1)
             return false;
 
-        Card newCard = (Card)cardScene.Instance();
-        
         if (slot == CardSlots.Left)
         {
-            if (leftCard != null)
-                leftCard.CallDeferred("free");
-
-            leftCard = newCard;
-            leftSlot.AddChild(newCard);
-            newCard.Owner = leftSlot;
+            leftCardInd = deckOrder[deckIndex--];
         }
         else
         {
-            if (rightCard != null)
-                rightCard.CallDeferred("free");
-
-            rightCard = newCard;
-            rightSlot.AddChild(newCard);
-            newCard.Owner = rightSlot;
+            rightCardInd = deckOrder[deckIndex--];
         }
-
-        newCard.Connect("IconSelected", this, "_on_Card_IconSelected");
-        newCard.InitCard(deckOrder[deckIndex--]);
 
         return true;
     }
@@ -201,43 +203,64 @@ public class Fobble : Node2D
 
     public void UpdateAll(GameState state, Inputs input)
     {
-        bool localWon = input.LocalActive && leftCard.HasIcon(input.localIcon) && rightCard.HasIcon(input.localIcon);
-        bool netWon = input.NetActive && leftCard.HasIcon(input.netIcon) && rightCard.HasIcon(input.netIcon);
+        bool localWon = input.LocalActive && Card.HasIcon(leftCardInd, input.localIcon) && Card.HasIcon(rightCardInd, input.localIcon);
+        bool localLost = input.LocalActive && !(Card.HasIcon(leftCardInd, input.localIcon) && Card.HasIcon(rightCardInd, input.localIcon));
+        bool netWon = input.NetActive && Card.HasIcon(leftCardInd, input.netIcon) && Card.HasIcon(rightCardInd, input.netIcon);
+        bool netLost = input.NetActive && !(Card.HasIcon(leftCardInd, input.netIcon) && Card.HasIcon(rightCardInd, input.netIcon));
 
-        if (input.NetActive)
-            GD.Print(localWon, netWon);
-
-        if (localWon && !netWon)
+        if (localWon && netWon)
         {
             meScore++;
-            
-            if (!DrawCard(input.localSlot.Value))
-                GG();
-        }
-        else if (netWon && !localWon)
-        {
             themScore++;
-            
-            if (!DrawCard(input.netSlot.Value))
-                GG();
+            drawSound.Play(0);
         }
-        else if (localWon && netWon)
+        else if (localWon || netLost)
         {
-            themScore++;
             meScore++;
+            winSound.Play(0);
+        }
+        else if (netWon || localLost)
+        {
+            themScore++;
+            loseSound.Play(0);
+        }
 
-            if (input.localSlot == input.netSlot)
-            {
-                if (!DrawCard(input.localSlot.Value))
-                    GG();
-            }
-            else
-            {
-                if (!DrawCard(input.localSlot.Value))
-                    GG();
-                if (!DrawCard(input.netSlot.Value))
-                    GG();
-            }
+        bool leftSlotUsed = (input.LocalActive && input.localSlot == CardSlots.Left) || (input.NetActive && input.netSlot == CardSlots.Left);
+        bool rightSlotUsed = (input.LocalActive && input.localSlot == CardSlots.Right) || (input.NetActive && input.netSlot == CardSlots.Right);
+
+        if (leftSlotUsed)
+            DrawCard(CardSlots.Left);
+        if (rightSlotUsed)
+            DrawCard(CardSlots.Right);
+
+    }
+
+    public void UpdateUI()
+    {
+        if (deckOrder[leftCardInd] != leftCard?.cardIndex)
+        {
+            Card newCard = (Card)cardScene.Instance();
+            if (leftCard != null)
+                leftCard.CallDeferred("free");
+
+            leftCard = newCard;
+            leftSlot.AddChild(newCard);
+            newCard.Owner = leftSlot;
+            newCard.InitCard(deckOrder[leftCardInd]);
+            newCard.Connect("IconSelected", this, "_on_Card_IconSelected");
+        }
+
+        if (deckOrder[rightCardInd] != rightCard?.cardIndex)
+        {
+            Card newCard = (Card)cardScene.Instance();
+            if (rightCard != null)
+                rightCard.CallDeferred("free");
+
+            rightCard = newCard;
+            rightSlot.AddChild(newCard);
+            newCard.Owner = rightSlot;
+            newCard.InitCard(deckOrder[rightCardInd]);
+            newCard.Connect("IconSelected", this, "_on_Card_IconSelected");
         }
 
         UpdateScores();
@@ -246,10 +269,11 @@ public class Fobble : Node2D
     public void ResetGameState(GameState oldState)
     {
         gameStatus = oldState.status;
-        deckOrder = oldState.deckOrder;
         deckIndex = oldState.deckIndex;
         meScore = oldState.playerOnePoints;
         themScore = oldState.playerTwoPoints;
+        leftCardInd = oldState.leftCardIndex;
+        rightCardInd = oldState.rightCardIndex;
     }
 
     public GameState GetGameState()
@@ -257,10 +281,11 @@ public class Fobble : Node2D
         GameState state = new GameState
         {
             deckIndex = deckIndex,
-            deckOrder = deckOrder,
             status = gameStatus,
             playerOnePoints = meScore,
-            playerTwoPoints = themScore
+            playerTwoPoints = themScore,
+            leftCardIndex = leftCardInd,
+            rightCardIndex = rightCardInd
         };
 
         return state;
@@ -335,14 +360,11 @@ public class Fobble : Node2D
 
     public class GameState
     {
-        public Inputs input;
-        public byte[] deckOrder;
         public GameStatus status;
         public int playerOnePoints;
         public int playerTwoPoints;
         public int deckIndex;
         public int leftCardIndex;
         public int rightCardIndex;
-        public int frameNum;
     }
 }

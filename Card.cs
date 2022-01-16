@@ -10,6 +10,8 @@ public class Card : Node2D
     private string[] icons;
     private RandomNumberGenerator rng;
 
+    public int cardIndex;
+
 
     public override void _Ready()
     {
@@ -17,6 +19,7 @@ public class Card : Node2D
 
     public void InitCard(int cardIndex)
     {
+        this.cardIndex = cardIndex;
         this.icons = Fobble.BASE_DECK[cardIndex];;
 
         rng = new RandomNumberGenerator();

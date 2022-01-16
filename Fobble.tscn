@@ -1,7 +1,10 @@
-[gd_scene load_steps=3 format=2]
+[gd_scene load_steps=6 format=2]
 
 [ext_resource path="res://Fobble.cs" type="Script" id=1]
 [ext_resource path="res://InputHandler.cs" type="Script" id=2]
+[ext_resource path="res://Draw.wav" type="AudioStream" id=3]
+[ext_resource path="res://Lose.wav" type="AudioStream" id=4]
+[ext_resource path="res://Win.wav" type="AudioStream" id=5]
 
 [node name="Fobble" type="Node2D"]
 script = ExtResource( 1 )
@@ -141,3 +144,21 @@ __meta__ = {
 
 [node name="InputHandler" type="Node" parent="."]
 script = ExtResource( 2 )
+
+[node name="NetStatusLabel" type="Label" parent="."]
+margin_left = 20.0
+margin_top = 558.0
+margin_right = 503.0
+margin_bottom = 597.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="WinSound" type="AudioStreamPlayer" parent="."]
+stream = ExtResource( 5 )
+
+[node name="LoseSound" type="AudioStreamPlayer" parent="."]
+stream = ExtResource( 4 )
+
+[node name="DrawSound" type="AudioStreamPlayer" parent="."]
+stream = ExtResource( 3 )
